@@ -8,22 +8,37 @@
 1. ✅ Changed `main` field in package.json from `index.js` to `server.js`
 2. ✅ Created `render.yaml` configuration file
 3. ✅ Updated `firebase-admin` from v10.3.0 to v13.10.0 (fixes 14 security vulnerabilities)
-4. ✅ Documented all required environment variables
+4. ✅ Removed MongoDB/Mongoose dependency - now using Firebase only
+5. ✅ Documented all required environment variables
 
 ---
 
 ## 🚀 Quick Deployment Steps
 
-### Step 1: Update Dependencies Locally
+### Step 1: Update Render Repository Settings
+
+**IMPORTANT**: Your Render deployment is currently pointing to the wrong repository!
+
+Current (wrong): `https://github.com/jayeshpandey01/backend`
+Correct: `https://github.com/jayeshpandey01/job_server`
+
+**To fix this:**
+1. Go to your Render dashboard: https://dashboard.render.com
+2. Select your service
+3. Go to **Settings** → **Build & Deploy**
+4. Update the **Repository** field to: `https://github.com/jayeshpandey01/job_server`
+5. Click **Save Changes**
+
+### Step 2: Update Dependencies Locally
 
 ```bash
 cd server
 npm install
 ```
 
-This will update firebase-admin and fix all 14 security vulnerabilities.
+This will update firebase-admin and remove mongoose dependency.
 
-### Step 2: Configure Render Dashboard
+### Step 3: Configure Render Dashboard
 
 Go to: https://dashboard.render.com/web/srv-YOUR-SERVICE-ID
 
@@ -32,7 +47,7 @@ Go to: https://dashboard.render.com/web/srv-YOUR-SERVICE-ID
 - **Start Command**: `node server.js`
 - **Node Version**: 24.14.1 (or leave as default)
 
-### Step 3: Set Environment Variables in Render
+### Step 4: Set Environment Variables in Render
 
 Go to your Render service → **Environment** tab and add these:
 
@@ -62,9 +77,14 @@ SENTRY_DSN=your_sentry_dsn_if_you_have_one
 CLOUDINARY_NAME=your_cloud_name
 CLOUDINARY_API_KEY=your_cloudinary_api_key
 CLOUDINARY_SECRET_KEY=your_cloudinary_secret
+
+# Supabase (for job scraper)
+SUPABASE_URL=your_supabase_url
+SUPABASE_ANON_KEY=your_supabase_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
 ```
 
-### Step 4: Firebase Admin SDK Setup
+### Step 5: Firebase Admin SDK Setup
 
 ⚠️ **IMPORTANT**: You need to add Firebase credentials to Render.
 
@@ -86,26 +106,18 @@ FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nYour_Private_Key_Here\n-----E
 2. Add file: `jobfinder-de280-firebase-adminsdk-fbsvc-9b2e4d657d.json`
 3. Paste the entire JSON content
 
-### Step 5: Push Changes to GitHub
+### Step 6: Push Changes to GitHub
 
 ```bash
 # From the server directory
 git add .
-git commit -m "Fix: Update deployment config and security patches"
+git commit -m "Fix: Remove MongoDB, use Firebase only"
 git push origin main
 ```
 
 Render will automatically detect changes and redeploy.
 
-### Step 6: Update Client to Use Backend URL
-
-Update your client `.env` file:
-
-```env
-VITE_API_URL=https://backend-server-lzox.onrender.com
-```
-
-### Step 6: Update Client to Use Backend URL
+### Step 7: Update Client to Use Backend URL
 
 Update your client `.env` file:
 
@@ -126,6 +138,7 @@ After deployment, verify these:
 2. **Build Logs**
    - Check Render logs for successful build
    - No "Cannot find module" errors
+   - No MongoDB connection errors
 
 3. **Environment Variables**
    - All required variables are set
@@ -142,6 +155,9 @@ After deployment, verify these:
 ---
 
 ## 🐛 Troubleshooting
+
+### Error: "MongoAPIError: URI must include hostname, domain name, and tld"
+**✅ FIXED**: Removed mongoose dependency. Server now uses Firebase only.
 
 ### Error: "Cannot find module '/opt/render/project/src/index.js'"
 **✅ FIXED**: Updated package.json main field to `server.js`
@@ -165,6 +181,7 @@ After deployment, verify these:
 1. Render logs for specific error messages
 2. All required environment variables are set
 3. Firebase service account JSON is valid
+4. Repository URL is correct in Render settings
 
 ---
 
@@ -197,6 +214,11 @@ SENTRY_DSN=your_sentry_dsn
 CLOUDINARY_NAME=your_cloud_name
 CLOUDINARY_API_KEY=your_api_key
 CLOUDINARY_SECRET_KEY=your_secret
+
+# Optional: Supabase (for job scraper)
+SUPABASE_URL=your_supabase_url
+SUPABASE_ANON_KEY=your_supabase_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
 ```
 
 ---
@@ -252,7 +274,9 @@ CLOUDINARY_SECRET_KEY=your_secret
 |------|--------|--------|
 | `package.json` | `"main": "server.js"` | Fixed entry point |
 | `package.json` | `firebase-admin: ^13.10.0` | Security patches |
+| `package.json` | Removed `mongoose` | Using Firebase instead of MongoDB |
 | `render.yaml` | Created new file | Deployment config |
+| `server.js` | Removed MongoDB connection | Using Firebase only |
 | `DEPLOYMENT.md` | Created this guide | Documentation |
 
 **All changes are ready to commit and push!**

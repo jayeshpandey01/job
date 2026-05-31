@@ -8,6 +8,8 @@ import { AppContext } from "../context/AppContext";
 import { toast } from "react-toastify";
 import { motion, AnimatePresence } from "framer-motion";
 import { FileText, File, Edit, Download, Briefcase, TrendingUp, Calendar, MapPin, Clock, Eye, CheckCircle, XCircle, AlertCircle, User, BarChart3, Home } from "lucide-react";
+import CalendarWidget from "../components/CalendarWidget";
+import JobNotesReminders from "../components/JobNotesReminders";
 
 const Applications = () => {
   const navigate = useNavigate();
@@ -15,6 +17,7 @@ const Applications = () => {
   const [isEdit, setIsEdit] = useState(false);
   const [resume, setResume] = useState(null);
   const [selectedStatus, setSelectedStatus] = useState('all');
+  const [selectedJobForNotes, setSelectedJobForNotes] = useState(null);
 
   const context = useContext(AppContext);
   const { backendUrl, userData, userApplications, fetchUserData, user } = context;
@@ -207,93 +210,106 @@ const Applications = () => {
           ))}
         </motion.div>
 
-        {/* Resume Section */}
-        <motion.div
-          variants={cardVariants}
-          whileHover={{ y: -2 }}
-          className="mb-8 group relative"
-        >
-          <div className="absolute inset-0 bg-brand-orange/10 rounded-xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-          <div className="relative jl-card overflow-hidden">
-            <div className="p-6">
-              <div className="flex items-center mb-6">
-                <div className="w-10 h-10 bg-brand-orange rounded-lg flex items-center justify-center mr-4 shadow-sm">
-                  <FileText className="w-5 h-5 text-white" />
+        {/* Resume & Calendar Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+          <motion.div
+            variants={cardVariants}
+            whileHover={{ y: -2 }}
+            className="group relative"
+          >
+            <div className="absolute inset-0 bg-brand-orange/10 rounded-xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+            <div className="relative jl-card overflow-hidden h-full">
+              <div className="p-6">
+                <div className="flex items-center mb-6">
+                  <div className="w-10 h-10 bg-brand-orange rounded-lg flex items-center justify-center mr-4 shadow-sm">
+                    <FileText className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-semibold text-jl-text">Resume Management</h3>
+                    <p className="text-jl-text-secondary">Keep your profile updated</p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-xl font-semibold text-jl-text">Resume Management</h3>
-                  <p className="text-jl-text-secondary">Keep your profile updated</p>
-                </div>
+                
+                <AnimatePresence mode="wait">
+                  {isEdit || (userData && !userData.resume) ? (
+                    <motion.div
+                      key="edit"
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: 20 }}
+                      className="flex flex-wrap gap-4 items-center"
+                    >
+                      <label className="relative cursor-pointer group">
+                        <div className="flex items-center px-4 py-3 bg-jl-muted border border-jl-border rounded-lg hover:bg-jl-surface transition-all duration-200">
+                          <Download className="w-4 h-4 text-jl-text-secondary mr-2 group-hover:text-jl-text transition-colors" />
+                          <span className="text-jl-text-secondary group-hover:text-jl-text transition-colors">
+                            {resume ? resume.name : "Select Resume"}
+                          </span>
+                        </div>
+                        <input
+                          type="file"
+                          className="sr-only"
+                          accept="application/pdf"
+                          onChange={(e) => setResume(e.target.files[0])}
+                        />
+                      </label>
+                      
+                      <motion.button
+                        onClick={updateResume}
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        className="px-6 py-3 bg-brand-orange text-white font-medium rounded-lg hover:opacity-90 transition-all duration-200 shadow-sm"
+                      >
+                        Save Resume
+                      </motion.button>
+                    </motion.div>
+                  ) : (
+                    <motion.div
+                      key="view"
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -20 }}
+                      className="flex flex-wrap gap-4 items-center"
+                    >
+                      <motion.a 
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        className="flex items-center px-6 py-3 bg-emerald-600 text-white font-medium rounded-lg hover:bg-emerald-700 transition-all duration-200 shadow-sm"
+                        href={userData?.resume || "#"}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <Eye className="w-4 h-4 mr-2" />
+                        View Resume
+                      </motion.a>
+                      
+                      <motion.button
+                        onClick={() => setIsEdit(true)}
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        className="flex items-center px-6 py-3 bg-jl-muted border border-jl-border text-jl-text font-medium rounded-lg hover:bg-jl-surface transition-all duration-200"
+                      >
+                        <Edit className="w-4 h-4 mr-2" />
+                        Update Resume
+                      </motion.button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
-              
-              <AnimatePresence mode="wait">
-                {isEdit || (userData && !userData.resume) ? (
-                  <motion.div
-                    key="edit"
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: 20 }}
-                    className="flex flex-wrap gap-4 items-center"
-                  >
-                    <label className="relative cursor-pointer group">
-                      <div className="flex items-center px-4 py-3 bg-jl-muted border border-jl-border rounded-lg hover:bg-jl-surface transition-all duration-200">
-                        <Download className="w-4 h-4 text-jl-text-secondary mr-2 group-hover:text-jl-text transition-colors" />
-                        <span className="text-jl-text-secondary group-hover:text-jl-text transition-colors">
-                          {resume ? resume.name : "Select Resume"}
-                        </span>
-                      </div>
-                      <input
-                        type="file"
-                        className="sr-only"
-                        accept="application/pdf"
-                        onChange={(e) => setResume(e.target.files[0])}
-                      />
-                    </label>
-                    
-                    <motion.button
-                      onClick={updateResume}
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      className="px-6 py-3 bg-brand-orange text-white font-medium rounded-lg hover:opacity-90 transition-all duration-200 shadow-sm"
-                    >
-                      Save Resume
-                    </motion.button>
-                  </motion.div>
-                ) : (
-                  <motion.div
-                    key="view"
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -20 }}
-                    className="flex flex-wrap gap-4 items-center"
-                  >
-                    <motion.a 
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      className="flex items-center px-6 py-3 bg-emerald-600 text-white font-medium rounded-lg hover:bg-emerald-700 transition-all duration-200 shadow-sm"
-                      href={userData?.resume || "#"}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      <Eye className="w-4 h-4 mr-2" />
-                      View Resume
-                    </motion.a>
-                    
-                    <motion.button
-                      onClick={() => setIsEdit(true)}
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      className="flex items-center px-6 py-3 bg-jl-muted border border-jl-border text-jl-text font-medium rounded-lg hover:bg-jl-surface transition-all duration-200"
-                    >
-                      <Edit className="w-4 h-4 mr-2" />
-                      Update Resume
-                    </motion.button>
-                  </motion.div>
-                )}
-              </AnimatePresence>
             </div>
-          </div>
-        </motion.div>
+          </motion.div>
+
+          <motion.div
+            variants={cardVariants}
+            whileHover={{ y: -2 }}
+            className="group relative"
+          >
+            <div className="absolute inset-0 bg-brand-orange/10 rounded-xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+            <div className="relative overflow-hidden h-full">
+              <CalendarWidget role="user" />
+            </div>
+          </motion.div>
+        </div>
 
         {/* Applications Section */}
         <motion.div
@@ -387,7 +403,19 @@ const Applications = () => {
                               </div>
                             </div>
                             
-                            <div className="flex-shrink-0">
+                            <div className="flex-shrink-0 flex items-center gap-3">
+                              <button
+                                onClick={() => {
+                                  setSelectedJobForNotes({
+                                    id: job.jobId?._id || job.jobId?.id || job.jobId,
+                                    title: job.jobId?.title || "Job Notes"
+                                  });
+                                }}
+                                className="p-2.5 bg-brand-orange/10 hover:bg-brand-orange/20 text-brand-orange rounded-xl transition duration-200"
+                                title="Write Notes & Reminders"
+                              >
+                                <FileText className="w-4 h-4" />
+                              </button>
                               <span className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-medium ${statusConfig.bg} ${statusConfig.text} ${statusConfig.border} border backdrop-blur-sm`}>
                                 <StatusIcon className="w-3 h-3 mr-1.5" />
                                 {job.status || "Pending"}
