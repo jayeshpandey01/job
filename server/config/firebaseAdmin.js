@@ -16,6 +16,7 @@ const resolveCredentialPath = () => {
     process.env.FIREBASE_SERVICE_ACCOUNT_PATH,
     join(cwd, "serviceAccountKey.json"),
     join(serverDir, "serviceAccountKey.json"),
+    join(serverDir, "jobfinder-de280-firebase-adminsdk-fbsvc-9b2e4d657d.json"),
   ].filter(Boolean);
 
   try {
