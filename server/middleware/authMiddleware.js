@@ -3,6 +3,13 @@ import { auth, db } from '../config/firebaseAdmin.js';
 // Unified Firebase Auth ID Token Verifier and Role Guard
 export const protectRoute = (requiredRole) => async (req, res, next) => {
   try {
+    if (!auth || !db) {
+      return res.status(500).json({
+        success: false,
+        message: "Firebase Admin SDK is not initialized. Please configure FIREBASE_SERVICE_ACCOUNT_JSON or check the service account file."
+      });
+    }
+
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
       return res.status(401).json({ success: false, message: "Unauthorized: Missing token" });
@@ -51,6 +58,13 @@ export const protectRoute = (requiredRole) => async (req, res, next) => {
 // Deprecated company token backward compatibility wrapper
 export const protectCompany = async (req, res, next) => {
   try {
+    if (!auth || !db) {
+      return res.status(500).json({
+        success: false,
+        message: "Firebase Admin SDK is not initialized. Please configure FIREBASE_SERVICE_ACCOUNT_JSON or check the service account file."
+      });
+    }
+
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
       return res.status(401).json({ success: false, message: "Not authorized" });
