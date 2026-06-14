@@ -8,8 +8,14 @@ import { collection, onSnapshot, query, where } from "firebase/firestore";
 export const AppContext = createContext();
 
 export const AppContextProvider = (props) => {
-    const backendUrl = (import.meta.env.VITE_BACKEND_URL || "").trim();
-    const isBackendConfigured = Boolean(backendUrl);
+    let tempBackendUrl = (import.meta.env.VITE_BACKEND_URL || "").trim();
+    if (typeof window !== "undefined" && window.location.hostname !== "localhost") {
+      if (tempBackendUrl.includes("localhost") || tempBackendUrl.includes("127.0.0.1")) {
+        tempBackendUrl = "";
+      }
+    }
+    const backendUrl = tempBackendUrl;
+    const isBackendConfigured = true;
 
     const [user, setUser] = useState(null);
     const [searchFilter, setSearchFilter] = useState({
