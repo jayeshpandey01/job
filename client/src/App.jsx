@@ -19,6 +19,8 @@ import ApplicantChat from "./pages/applicant/ApplicantChat";
 import ApplicantJobs from "./pages/applicant/ApplicantJobs";
 import ActivityPanel from "./pages/applicant/ActivityPanel";
 import RecruiterChat from "./pages/recruiter/RecruiterChat";
+import AssignInterview from "./pages/recruiter/AssignInterview";
+import MockPreparation from "./pages/applicant/MockPreparation";
 import ErrorBoundary from "./components/ErrorBoundary";
 import "quill/dist/quill.snow.css";
 import { ToastContainer } from "react-toastify";
@@ -81,6 +83,7 @@ const App = () => {
           <Route index element={<Navigate to="chat" replace />} />
           <Route path="chat" element={<ApplicantChat />} />
           <Route path="jobs" element={<ApplicantJobs />} />
+          <Route path="preparation" element={<MockPreparation />} />
           <Route path="activity" element={<ActivityPanel />} />
         </Route>
         <Route
@@ -96,6 +99,7 @@ const App = () => {
           <Route path="add-job" element={<AddJob />} />
           <Route path="manage-job" element={<ManageJobs />} />
           <Route path="view-applications" element={<ViewApplications />} />
+          <Route path="assign-interview" element={<AssignInterview />} />
           <Route path="ai" element={<RecruiterChat />} />
         </Route>
       </Routes>

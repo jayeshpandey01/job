@@ -279,13 +279,13 @@ const RecruiterLogin = () => {
               exit={{ opacity: 0, x: 10 }}
             >
               {roleTab === "recruiter" && state === "Sign Up" && isTextDataSubmited ? (
-                <div className="flex flex-col items-center my-4">
+              <div className="flex flex-col items-center my-4">
                   <div 
                     ref={dragAreaRef}
                     onDragOver={handleDragOver}
                     onDragLeave={handleDragLeave}
                     onDrop={handleDrop}
-                    className="relative w-36 h-36 mb-4 overflow-hidden rounded-2xl border-2 border-dashed border-gray-300 hover:border-brand-orange bg-gray-50 flex items-center justify-center cursor-pointer transition-all duration-200"
+                    className="relative w-36 h-36 mb-2 overflow-hidden rounded-2xl border-2 border-dashed border-gray-300 hover:border-brand-orange bg-gray-50 flex items-center justify-center cursor-pointer transition-all duration-200"
                   >
                     {image ? (
                       <div className="relative w-full h-full">
@@ -306,6 +306,7 @@ const RecruiterLogin = () => {
                       <label htmlFor="logo-upload" className="flex flex-col items-center justify-center w-full h-full cursor-pointer p-4 text-center">
                         <Upload size={24} className="text-gray-400 mb-2" />
                         <span className="text-xs font-bold text-brand-navy">Upload Brand Logo</span>
+                        <span className="text-[10px] text-gray-400 mt-1">Optional</span>
                         <input
                           id="logo-upload"
                           type="file"
@@ -316,6 +317,7 @@ const RecruiterLogin = () => {
                       </label>
                     )}
                   </div>
+                  <p className="text-[10px] text-gray-400 text-center">You can add a logo now or update it later from your dashboard</p>
                 </div>
               ) : (
                 <>

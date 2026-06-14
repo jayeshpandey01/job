@@ -8,12 +8,14 @@ import {
   Sparkles,
   FileText,
   ChevronDown,
+  Calendar,
 } from "lucide-react";
 import moment from "moment";
 
 const NAV_ITEMS = [
   { to: "/app/chat", icon: MessageCircle, label: "Chat with AI", end: true },
   { to: "/app/jobs", icon: Briefcase, label: "Browse Jobs" },
+  { to: "/app/preparation", icon: Calendar, label: "Prep Center" },
   { to: "/app/activity", icon: Activity, label: "Activity" },
 ];
 

@@ -6,22 +6,33 @@ import { logActivity } from "../services/chat/activityLogger.js";
 // Register a new Company/Recruiter via Firebase Auth
 export const registerCompany = async (req, res) => {
   const { name, email, password } = req.body;
-  const imageFile = req.file;
+  const imageFile = req.file; // Logo is optional
 
-  if (!name || !email || !password || !imageFile) {
-    return res.json({ success: false, message: "All fields are required" });
+  if (!name || !email || !password) {
+    return res.json({ success: false, message: "Name, email and password are required" });
   }
 
   try {
-    const imageUrl = await uploadCompanyLogo(imageFile);
+    // Attempt logo upload — gracefully fall back to empty string if not provided or upload fails
+    let imageUrl = "";
+    if (imageFile) {
+      try {
+        imageUrl = await uploadCompanyLogo(imageFile);
+      } catch (uploadError) {
+        console.warn("[registerCompany] Logo upload failed (non-fatal):", uploadError.message);
+        // Continue registration without a logo
+      }
+    }
 
     // Create recruiter in Firebase Auth
-    const userRecord = await auth.createUser({
+    const createUserPayload = {
       email,
       password,
       displayName: name,
-      photoURL: imageUrl,
-    });
+    };
+    if (imageUrl) createUserPayload.photoURL = imageUrl;
+
+    const userRecord = await auth.createUser(createUserPayload);
 
     // Set custom claim role = "recruiter"
     await auth.setCustomUserClaims(userRecord.uid, { role: "recruiter" });

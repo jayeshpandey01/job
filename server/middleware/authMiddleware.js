@@ -33,6 +33,11 @@ export const protectRoute = (requiredRole) => async (req, res, next) => {
       if (claimRole !== "admin") {
         return res.status(403).json({ success: false, message: "Forbidden: Admin access required" });
       }
+    } else if (requiredRole === "user") {
+      // Both applicant role ('user') and recruiter role ('recruiter') are allowed to access basic user/applicant paths
+      if (req.user.role !== "user" && req.user.role !== "recruiter") {
+        return res.status(403).json({ success: false, message: "Forbidden: Access denied" });
+      }
     } else if (requiredRole && req.user.role !== requiredRole) {
       return res.status(403).json({ success: false, message: "Forbidden: Access denied" });
     }
@@ -54,7 +59,15 @@ export const protectCompany = async (req, res, next) => {
     const token = authHeader.split(" ")[1];
     const decodedToken = await auth.verifyIdToken(token);
 
-    if (decodedToken.role !== "recruiter") {
+    let role = decodedToken.role;
+    if (!role) {
+      const companyDoc = await db.collection("companies").doc(decodedToken.uid).get();
+      if (companyDoc.exists) {
+        role = companyDoc.data().role;
+      }
+    }
+
+    if (role !== "recruiter") {
       return res.status(403).json({ success: false, message: "Forbidden: Recruiter access required" });
     }
 

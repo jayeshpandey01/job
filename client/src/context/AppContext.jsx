@@ -269,7 +269,8 @@ export const AppContextProvider = (props) => {
         );
         return data;
       } catch (error) {
-        return { success: false, reply: "Sorry, something went wrong. Please try again." };
+        const serverMsg = error.response?.data?.message || error.message || "Something went wrong.";
+        return { success: false, reply: serverMsg };
       }
     };
 
@@ -333,7 +334,7 @@ export const AppContextProvider = (props) => {
 
     const sendRecruiterChatMessage = async (message, history = [], sessionId = null) => {
       try {
-        if (!companyToken) {
+        if (!companyToken && !auth?.currentUser) {
           return { success: false, reply: "Please sign in as a recruiter." };
         }
         const headers = await getRecruiterAuthHeaders();

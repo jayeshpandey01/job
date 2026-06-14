@@ -5,8 +5,7 @@ import { logActivity } from "../services/chat/activityLogger.js";
 import { runJobScraper } from "../services/jobScraperService.js";
 import { fetchWebSearchResults } from "../services/chat/webSearchService.js";
 import { detectChatMode, stripModePrefix } from "../services/chat/chatModeDetector.js";
-import { detectApplicantIntent } from "../services/chat/intentDetector.js";
-import { getGeminiModel } from "../services/chat/geminiClient.js";
+import { getGeminiModel, resolveWorkingGeminiModel, getGenAI } from "../services/chat/geminiClient.js";
 import {
   matchResumeToJobs,
   formatResumeMatchResponse,
@@ -295,7 +294,8 @@ export const handleChatSession = async (req, res) => {
       }
 
       const systemPrompt = buildSystemPrompt(intent, activeJobs, resumeText);
-      const model = getGeminiModel();
+      const modelName = await resolveWorkingGeminiModel();
+      const model = getGenAI().getGenerativeModel({ model: modelName });
 
       const geminiHistory = history.map((h) => ({
         role: h.role === "user" ? "user" : "model",

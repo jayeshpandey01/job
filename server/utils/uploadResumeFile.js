@@ -70,35 +70,60 @@ export async function uploadResumeFile(file) {
 
   // Use Supabase Storage - try 'resume' bucket first (singular)
   if (isSupabaseConfigured()) {
-    const safeName = (file.originalname || "resume.pdf").replace(/[^a-zA-Z0-9._-]/g, "_");
-    const storagePath = `${Date.now()}-${safeName}`;
+    try {
+      const safeName = (file.originalname || "resume.pdf").replace(/[^a-zA-Z0-9._-]/g, "_");
+      const storagePath = `${Date.now()}-${safeName}`;
 
-    let result = await supabase.storage
-      .from('resume')
-      .upload(storagePath, file.buffer, {
-        contentType: file.mimetype || "application/pdf",
-        upsert: false
-      });
-
-    // If 'resume' bucket doesn't exist, try 'resumes'
-    if (result.error && result.error.message.includes('not found')) {
-      result = await supabase.storage
-        .from('resumes')
+      let result = await supabase.storage
+        .from('resume')
         .upload(storagePath, file.buffer, {
           contentType: file.mimetype || "application/pdf",
           upsert: false
         });
-    }
 
-    if (result.error) {
-      throw new Error(`Resume upload failed: ${result.error.message}`);
-    }
+      // If 'resume' bucket doesn't exist, try 'resumes'
+      if (result.error && result.error.message.includes('not found')) {
+        result = await supabase.storage
+          .from('resumes')
+          .upload(storagePath, file.buffer, {
+            contentType: file.mimetype || "application/pdf",
+            upsert: false
+          });
+      }
 
-    const url = await getSignedResumeUrl(result.data.path);
-    return { url, storagePath: result.data.path };
+      if (!result.error) {
+        const url = await getSignedResumeUrl(result.data.path);
+        return { url, storagePath: result.data.path };
+      }
+      
+      console.warn("[uploadResumeFile] Supabase Storage error:", result.error.message);
+    } catch (supabaseErr) {
+      console.warn("[uploadResumeFile] Supabase Storage failed:", supabaseErr.message);
+    }
+  }
+
+  // Local Disk Fallback (guaranteed to work locally)
+  try {
+    const fs = await import("fs");
+    const path = await import("path");
+    const uploadsDir = path.join(process.cwd(), "uploads", "resumes");
+    if (!fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir, { recursive: true });
+    }
+    const safeName = (file.originalname || "resume.pdf").replace(/[^a-zA-Z0-9._-]/g, "_");
+    const filename = `${Date.now()}-${safeName}`;
+    const filePath = path.join(uploadsDir, filename);
+    fs.writeFileSync(filePath, file.buffer);
+
+    const backendUrl = process.env.BACKEND_URL || `http://localhost:${process.env.PORT || 3000}`;
+    const localUrl = `${backendUrl}/uploads/resumes/${filename}`;
+    console.log("[uploadResumeFile] Fallback to Local Storage successful:", localUrl);
+    return { url: localUrl, storagePath: localUrl };
+  } catch (localErr) {
+    console.error("[uploadResumeFile] Local fallback failed:", localErr.message);
   }
 
   throw new Error(
-    "Resume upload is not configured. Add CLOUDINARY_* vars or SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY to server/.env"
+    "Resume upload is not configured, and local fallback failed."
   );
 }

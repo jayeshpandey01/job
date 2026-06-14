@@ -5,7 +5,7 @@ import { AppContext } from "../context/AppContext";
 import { signOut } from "firebase/auth";
 import { auth } from "../config/firebase";
 import { motion, AnimatePresence } from "framer-motion";
-import { LayoutDashboard, PlusSquare, Inbox, Sparkles } from "lucide-react";
+import { LayoutDashboard, PlusSquare, Inbox, Sparkles, Calendar } from "lucide-react";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -64,6 +64,7 @@ const Dashboard = () => {
     { path: "manage-job", label: "Dashboard", icon: <LayoutDashboard size={20} /> },
     { path: "add-job", label: "Add Job", icon: <PlusSquare size={20} /> },
     { path: "view-applications", label: "Applications", icon: <Inbox size={20} /> },
+    { path: "assign-interview", label: "Assign Interview", icon: <Calendar size={20} /> },
     { path: "ai", label: "AI Assistant", icon: <Sparkles size={20} /> },
   ];
 

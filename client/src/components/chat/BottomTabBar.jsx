@@ -1,10 +1,11 @@
 import React from "react";
 import { NavLink, useLocation } from "react-router-dom";
-import { MessageCircle, Briefcase, Activity, Settings } from "lucide-react";
+import { MessageCircle, Briefcase, Activity, Settings, Calendar } from "lucide-react";
 
 const tabs = [
   { to: "/app/chat", icon: MessageCircle, label: "Chat", end: true },
   { to: "/app/jobs", icon: Briefcase, label: "Jobs" },
+  { to: "/app/preparation", icon: Calendar, label: "Prep" },
   { to: "/app/activity", icon: Activity, label: "Activity" },
 ];
 

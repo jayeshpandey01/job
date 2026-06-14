@@ -1,10 +1,8 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import { db } from "../config/firebaseAdmin.js";
 import admin from "../config/firebaseAdmin.js";
 import { detectRecruiterIntent } from "../services/chat/intentDetector.js";
 import { buildRecruiterSystemPrompt } from "../services/chat/recruiterPrompts.js";
-
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+import { resolveWorkingGeminiModel, getGenAI } from "../services/chat/geminiClient.js";
 const MAX_SESSION_MESSAGES = 100;
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -151,7 +149,8 @@ export const handleRecruiterChat = async (req, res) => {
     }
 
     const systemPrompt = buildRecruiterSystemPrompt(intent, context);
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const modelName = await resolveWorkingGeminiModel();
+    const model = getGenAI().getGenerativeModel({ model: modelName });
 
     const geminiHistory = history.map((h) => ({
       role: h.role === "user" ? "user" : "model",

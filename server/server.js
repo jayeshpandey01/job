@@ -12,6 +12,9 @@ import chatbotRoutes from './routes/chatbotRoutes.js';
 import applicantChatbotRoutes from './routes/applicantChatbotRoutes.js';
 import recruiterChatbotRoutes from './routes/recruiterChatbotRoutes.js';
 import activityRoutes from './routes/activityRoutes.js';
+import calendarNotesRoutes from './routes/calendarNotesRoutes.js';
+import interviewRoutes from './routes/interviewRoutes.js';
+import googleCalendarRoutes from './routes/googleCalendarRoutes.js';
 import { protectRoute, protectCompany } from './middleware/authMiddleware.js';
 import { chatRateLimiter, scrapeRateLimiter } from './middleware/rateLimiters.js';
 import { db } from './config/firebaseAdmin.js';
@@ -41,6 +44,7 @@ app.use(
   })
 );
 app.use(express.json({ limit: "1mb" }));
+app.use("/uploads", express.static("uploads"));
 
 // Routes
 app.get("/", (req, res) => res.send("API Working with Firebase"));
@@ -54,6 +58,9 @@ app.use('/api/chatbot/applicant', chatRateLimiter, protectRoute("user"), applica
 app.use('/api/chatbot/recruiter', chatRateLimiter, protectCompany, recruiterChatbotRoutes)
 app.use('/api/activity', protectRoute("user"), activityRoutes)
 app.use('/api/chatbot', chatRateLimiter, protectRoute("user"), chatbotRoutes)
+app.use('/api/calendar-notes', calendarNotesRoutes)
+app.use('/api/interviews', interviewRoutes)
+app.use('/api/calendar', googleCalendarRoutes)
 
 // Unified Admin Route for `/admin`
 app.get('/api/admin/metrics', protectRoute("admin"), async (req, res) => {
