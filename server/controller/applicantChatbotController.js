@@ -1,4 +1,4 @@
-import { db } from "../config/firebaseAdmin.js";
+import { db, firebaseInitError } from "../config/firebaseAdmin.js";
 import admin from "../config/firebaseAdmin.js";
 import { parsePdfBuffer } from "../utils/parsePdf.js";
 import { logActivity } from "../services/chat/activityLogger.js";
@@ -150,6 +150,18 @@ const persistChatTurn = async (userId, sessionId, userMessage, assistantReply) =
 
 export const handleChatSession = async (req, res) => {
   try {
+    if (!db) {
+      console.error("[ChatBot] Firebase Firestore not initialized", { firebaseInitError });
+      return res.status(503).json({
+        success: false,
+        message: "Database not initialized. Please check your Firebase configuration.",
+        debug: {
+          firebaseError: firebaseInitError,
+          hasDb: !!db
+        }
+      });
+    }
+
     const { message, history = [], resumeText = "", sessionId: incomingSessionId, chatMode = "default" } = req.body;
     const userId = req.user.uid;
 
@@ -365,6 +377,15 @@ export const handleChatSession = async (req, res) => {
 
 export const parseResumePdf = async (req, res) => {
   try {
+    if (!db) {
+      console.error("[ChatBot] Firebase Firestore not initialized in parseResumePdf", { firebaseInitError });
+      return res.status(503).json({
+        success: false,
+        message: "Database not initialized. Please check your Firebase configuration.",
+        debug: { firebaseError: firebaseInitError }
+      });
+    }
+
     if (!req.file) {
       return res.status(400).json({ success: false, message: "No file uploaded" });
     }
@@ -392,6 +413,15 @@ export const parseResumePdf = async (req, res) => {
 
 export const listSessions = async (req, res) => {
   try {
+    if (!db) {
+      console.error("[ChatBot] Firebase Firestore not initialized in listSessions", { firebaseInitError });
+      return res.status(503).json({
+        success: false,
+        message: "Database not initialized. Please check your Firebase configuration.",
+        debug: { firebaseError: firebaseInitError }
+      });
+    }
+
     const userId = req.user.uid;
     const limit = Math.min(Number(req.query.limit) || 20, 50);
 
@@ -425,6 +455,15 @@ export const listSessions = async (req, res) => {
 
 export const getSession = async (req, res) => {
   try {
+    if (!db) {
+      console.error("[ChatBot] Firebase Firestore not initialized in getSession", { firebaseInitError });
+      return res.status(503).json({
+        success: false,
+        message: "Database not initialized. Please check your Firebase configuration.",
+        debug: { firebaseError: firebaseInitError }
+      });
+    }
+
     const userId = req.user.uid;
     const { sessionId } = req.params;
 
@@ -455,6 +494,15 @@ export const getSession = async (req, res) => {
 
 export const upsertSession = async (req, res) => {
   try {
+    if (!db) {
+      console.error("[ChatBot] Firebase Firestore not initialized in upsertSession", { firebaseInitError });
+      return res.status(503).json({
+        success: false,
+        message: "Database not initialized. Please check your Firebase configuration.",
+        debug: { firebaseError: firebaseInitError }
+      });
+    }
+
     const userId = req.user.uid;
     const { sessionId, title, messages = [] } = req.body;
     const now = admin.firestore.FieldValue.serverTimestamp();
