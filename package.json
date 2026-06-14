@@ -4,8 +4,9 @@
   "version": "1.0.0",
   "description": "Job Portal monorepo — run install and dev scripts from the project root",
   "scripts": {
-    "install:all": "npm install --prefix server && npm install --prefix client",
+    "install:all": "npm install --prefix server && npm install --prefix client && yarn --cwd FoloUp install",
     "server": "npm run server --prefix server",
-    "client": "npm run dev --prefix client"
+    "client": "npm run dev --prefix client",
+    "foloup:dev": "yarn --cwd FoloUp dev -p 3001"
   }
 }

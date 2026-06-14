@@ -17,10 +17,11 @@ const getOAuthClient = () => {
 router.get("/auth", protectRoute("user"), (req, res) => {
   const userId = req.user?.uid;
   const role = req.user?.role || "user";
+  const redirectTo = req.query.redirect_to || "";
 
   // If client credentials are not configured, perform mock callback redirect
   if (!process.env.GOOGLE_CLIENT_ID || process.env.GOOGLE_CLIENT_ID === "your_google_client_id") {
-    const callbackUrl = `${process.env.BACKEND_URL || "http://localhost:3000"}/api/calendar/callback?code=mock_oauth_code&state=${role}:${userId}`;
+    const callbackUrl = `${process.env.BACKEND_URL || "http://localhost:3000"}/api/calendar/callback?code=mock_oauth_code&state=${role}:${userId}:${encodeURIComponent(redirectTo)}`;
     return res.json({ success: true, authUrl: callbackUrl });
   }
 
@@ -29,14 +30,14 @@ router.get("/auth", protectRoute("user"), (req, res) => {
     const authUrl = oauth2Client.generateAuthUrl({
       access_type: "offline",
       scope: ["https://www.googleapis.com/auth/calendar.events"],
-      state: `${role}:${userId}`,
+      state: `${role}:${userId}:${redirectTo}`,
       prompt: "consent",
     });
 
     return res.json({ success: true, authUrl });
   } catch (err) {
     // If googleapis throws error due to bad/missing config, fallback to mock redirect
-    const callbackUrl = `${process.env.BACKEND_URL || "http://localhost:3000"}/api/calendar/callback?code=mock_oauth_code&state=${role}:${userId}`;
+    const callbackUrl = `${process.env.BACKEND_URL || "http://localhost:3000"}/api/calendar/callback?code=mock_oauth_code&state=${role}:${userId}:${encodeURIComponent(redirectTo)}`;
     return res.json({ success: true, authUrl: callbackUrl });
   }
 });
@@ -51,11 +52,15 @@ router.get("/callback", async (req, res) => {
   try {
     let role = "recruiter";
     let userId = state;
+    let redirectPath = "";
 
     if (state.includes(":")) {
       const parts = state.split(":");
       role = parts[0];
       userId = parts[1];
+      if (parts[2]) {
+        redirectPath = decodeURIComponent(parts[2]);
+      }
     }
 
     let tokens = {
@@ -81,11 +86,10 @@ router.get("/callback", async (req, res) => {
 
     // Redirect user back to dashboard or applicant prep page
     const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
-    if (role === "recruiter") {
-      return res.redirect(`${frontendUrl}/dashboard/assign-interview?calendar_auth=success`);
-    } else {
-      return res.redirect(`${frontendUrl}/app/preparation?calendar_auth=success`);
+    if (!redirectPath) {
+      redirectPath = role === "recruiter" ? "/dashboard/assign-interview" : "/app/preparation";
     }
+    return res.redirect(`${frontendUrl}${redirectPath}${redirectPath.includes("?") ? "&" : "?"}calendar_auth=success`);
   } catch (error) {
     return res.status(500).send(`Authentication error: ${error.message}`);
   }

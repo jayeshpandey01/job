@@ -1,7 +1,7 @@
 import { logger } from "@/lib/logger";
 import { SYSTEM_PROMPT, generateQuestionsPrompt } from "@/lib/prompts/generate-questions";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { NextResponse } from "next/server";
-import { OpenAI } from "openai";
 
 export const maxDuration = 60;
 
@@ -9,37 +9,23 @@ export async function POST(req: Request) {
   logger.info("generate-interview-questions request received");
   const body = await req.json();
 
-  const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-    maxRetries: 5,
-    dangerouslyAllowBrowser: true,
+  const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
+  const model = genAI.getGenerativeModel({
+    model: "gemini-1.5-flash",
+    generationConfig: { responseMimeType: "application/json" },
   });
 
   try {
-    const baseCompletion = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: [
-        {
-          role: "system",
-          content: SYSTEM_PROMPT,
-        },
-        {
-          role: "user",
-          content: generateQuestionsPrompt(body),
-        },
-      ],
-      response_format: { type: "json_object" },
-    });
+    const result = await model.generateContent([
+      { text: SYSTEM_PROMPT + "\n\n" + generateQuestionsPrompt(body) },
+    ]);
 
-    const basePromptOutput = baseCompletion.choices[0] || {};
-    const content = basePromptOutput.message?.content;
+    const content = result.response.text();
 
     logger.info("Interview questions generated successfully");
 
     return NextResponse.json(
-      {
-        response: content,
-      },
+      { response: content },
       { status: 200 },
     );
   } catch (error) {

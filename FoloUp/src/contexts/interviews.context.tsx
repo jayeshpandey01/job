@@ -2,7 +2,6 @@
 
 import { InterviewService } from "@/services/interviews.service";
 import type { Interview } from "@/types/interview";
-import { useClerk, useOrganization } from "@clerk/nextjs";
 import React, { useState, useContext, type ReactNode, useEffect } from "react";
 
 interface InterviewContextProps {
@@ -29,16 +28,14 @@ interface InterviewProviderProps {
 
 export function InterviewProvider({ children }: InterviewProviderProps) {
   const [interviews, setInterviews] = useState<Interview[]>([]);
-  const { user } = useClerk();
-  const { organization } = useOrganization();
   const [interviewsLoading, setInterviewsLoading] = useState(false);
 
   const fetchInterviews = async () => {
     try {
       setInterviewsLoading(true);
       const response = await InterviewService.getAllInterviews(
-        user?.id as string,
-        organization?.id as string,
+        "default_user",
+        "default_org",
       );
       setInterviewsLoading(false);
       setInterviews(response);
@@ -54,13 +51,10 @@ export function InterviewProvider({ children }: InterviewProviderProps) {
     return response;
   };
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
   useEffect(() => {
-    if (organization?.id || user?.id) {
-      fetchInterviews();
-    }
+    fetchInterviews();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [organization?.id, user?.id]);
+  }, []);
 
   return (
     <InterviewContext.Provider

@@ -11,6 +11,7 @@ import {
   formatResumeMatchResponse,
   extractTextFromFeedback,
 } from "../services/chat/resumeJobMatcher.js";
+import { detectApplicantIntent } from "../services/chat/intentDetector.js";
 import { formatWebSearchResponse } from "../services/chat/webSearchFormatter.js";
 const MAX_SESSION_MESSAGES = 100;
 

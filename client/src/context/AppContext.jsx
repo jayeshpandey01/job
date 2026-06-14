@@ -48,10 +48,7 @@ export const AppContextProvider = (props) => {
     };
 
     const ensureBackendUrl = () => {
-      if (!isBackendConfigured) {
-        toast.error("Missing VITE_BACKEND_URL in client/.env");
-        return false;
-      }
+      // Relative paths are supported, so we don't block if VITE_BACKEND_URL is missing.
       return true;
     };
 

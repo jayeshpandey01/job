@@ -3,6 +3,7 @@ import Retell from "retell-sdk";
 import { google } from "googleapis";
 import { db } from "../config/firebaseAdmin.js";
 import { protectRoute, protectCompany } from "../middleware/authMiddleware.js";
+import { supabase } from "../config/supabase.js";
 
 const router = express.Router();
 
@@ -65,6 +66,54 @@ router.post("/assign", protectCompany, async (req, res) => {
       status: "assigned",
       createdAt: new Date().toISOString(),
     });
+
+    // Sync to FoloUp Supabase database
+    if (supabase) {
+      try {
+        const mappedInterviewerId = interviewerId === "agent_hr_mock" || interviewerId.includes("hr") ? 1 : 2;
+        await supabase.from("interviewer").upsert([
+          {
+            id: 1,
+            name: "Jessica - HR Specialist",
+            description: "Focuses on behavioral, rapport-building, and workplace fit questions.",
+            image: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150",
+            agent_id: "agent_hr_mock",
+            empathy: 9,
+            exploration: 7,
+            rapport: 9,
+            speed: 6,
+          },
+          {
+            id: 2,
+            name: "David - Senior Tech Lead",
+            description: "Engages in core technical concepts, systems design, and problem solving.",
+            image: "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=150",
+            agent_id: "agent_tech_mock",
+            empathy: 6,
+            exploration: 9,
+            rapport: 6,
+            speed: 8,
+          }
+        ]);
+
+        await supabase.from("interview").insert({
+          id: interviewRef.id,
+          name: `Mock Interview with ${interviewerName}`,
+          description: objective || "General Interview Session",
+          objective: objective || "General Interview Session",
+          interviewer_id: mappedInterviewerId,
+          is_active: true,
+          questions: [
+            { question: "Can you introduce yourself and describe your background?" },
+            { question: "What are your key strengths in this domain?" },
+            { question: "Describe a challenging problem you solved recently." }
+          ],
+          time_duration: "15"
+        });
+      } catch (sbError) {
+        console.error("Supabase sync failed:", sbError.message);
+      }
+    }
 
     // Attempt Google Calendar Integration scheduling if token exists
     const recruiterTokenDoc = await db.collection("recruiter_tokens").doc(companyId).get();
@@ -142,6 +191,54 @@ router.post("/schedule-own", protectRoute("user"), async (req, res) => {
       status: "assigned",
       createdAt: new Date().toISOString(),
     });
+
+    // Sync to FoloUp Supabase database
+    if (supabase) {
+      try {
+        const mappedInterviewerId = interviewerId === "agent_hr_mock" || interviewerId.includes("hr") ? 1 : 2;
+        await supabase.from("interviewer").upsert([
+          {
+            id: 1,
+            name: "Jessica - HR Specialist",
+            description: "Focuses on behavioral, rapport-building, and workplace fit questions.",
+            image: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150",
+            agent_id: "agent_hr_mock",
+            empathy: 9,
+            exploration: 7,
+            rapport: 9,
+            speed: 6,
+          },
+          {
+            id: 2,
+            name: "David - Senior Tech Lead",
+            description: "Engages in core technical concepts, systems design, and problem solving.",
+            image: "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=150",
+            agent_id: "agent_tech_mock",
+            empathy: 6,
+            exploration: 9,
+            rapport: 6,
+            speed: 8,
+          }
+        ]);
+
+        await supabase.from("interview").insert({
+          id: interviewRef.id,
+          name: `Mock Interview with ${interviewerName}`,
+          description: objective || "General Mock Interview",
+          objective: objective || "General Mock Interview",
+          interviewer_id: mappedInterviewerId,
+          is_active: true,
+          questions: [
+            { question: "Can you introduce yourself and describe your background?" },
+            { question: "What are your key strengths in this domain?" },
+            { question: "Describe a challenging problem you solved recently." }
+          ],
+          time_duration: "15"
+        });
+      } catch (sbError) {
+        console.error("Supabase sync failed:", sbError.message);
+      }
+    }
 
     // Attempt Google Calendar Integration scheduling if token exists
     const userTokenDoc = await db.collection("user_tokens").doc(applicantId).get();

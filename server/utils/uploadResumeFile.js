@@ -1,5 +1,6 @@
 import { v2 as cloudinary } from "cloudinary";
 import { supabase } from "../config/supabase.js";
+import admin from "../config/firebaseAdmin.js";
 
 const SIGNED_URL_TTL_SECONDS = 7 * 24 * 60 * 60; // 7 days
 
@@ -40,7 +41,38 @@ export async function getSignedResumeUrl(storagePath) {
     return result.data.signedUrl;
   }
 
+  // Firebase Storage path fallback
+  try {
+    const bucket = admin.storage().bucket();
+    const fileRef = bucket.file(storagePath);
+    const [exists] = await fileRef.exists();
+    if (exists) {
+      const [url] = await fileRef.getSignedUrl({
+        action: 'read',
+        expires: Date.now() + SIGNED_URL_TTL_SECONDS * 1000,
+      });
+      return url;
+    }
+  } catch (firebaseErr) {
+    console.error('[getSignedResumeUrl] Firebase storage signed URL generation failed:', firebaseErr.message);
+  }
+
   return null;
+}
+
+/** Upload to Firebase Storage via Admin SDK. */
+async function uploadToFirebaseStorage(file) {
+  const bucket = admin.storage().bucket();
+  const safeName = (file.originalname || "resume.pdf").replace(/[^a-zA-Z0-9._-]/g, "_");
+  const destination = `resumes/${Date.now()}-${safeName}`;
+
+  const fileRef = bucket.file(destination);
+  await fileRef.save(file.buffer, {
+    metadata: { contentType: file.mimetype || "application/pdf" },
+    resumable: false,
+  });
+
+  return { storagePath: destination };
 }
 
 /**
@@ -52,7 +84,7 @@ export async function uploadResumeFile(file) {
     throw new Error("No resume file received");
   }
 
-  // Try Cloudinary first
+  // 1. Try Cloudinary first
   if (isCloudinaryConfigured()) {
     cloudinary.config({
       cloud_name: process.env.CLOUDINARY_NAME,
@@ -68,7 +100,17 @@ export async function uploadResumeFile(file) {
     return { url: result.secure_url, storagePath: result.secure_url };
   }
 
-  // Use Supabase Storage - try 'resume' bucket first (singular)
+  // 2. Try Firebase Storage (highly recommended for serverless/Vercel)
+  try {
+    const { storagePath } = await uploadToFirebaseStorage(file);
+    const url = await getSignedResumeUrl(storagePath);
+    console.log("[uploadResumeFile] Uploaded via Firebase Storage:", url);
+    return { url, storagePath };
+  } catch (firebaseErr) {
+    console.warn("[uploadResumeFile] Firebase Storage failed:", firebaseErr.message);
+  }
+
+  // 3. Try Supabase Storage
   if (isSupabaseConfigured()) {
     try {
       const safeName = (file.originalname || "resume.pdf").replace(/[^a-zA-Z0-9._-]/g, "_");
@@ -102,7 +144,7 @@ export async function uploadResumeFile(file) {
     }
   }
 
-  // Local Disk Fallback (guaranteed to work locally)
+  // 4. Local Disk Fallback (guaranteed to work locally)
   try {
     const fs = await import("fs");
     const path = await import("path");

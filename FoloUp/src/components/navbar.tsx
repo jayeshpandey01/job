@@ -1,4 +1,3 @@
-import { OrganizationSwitcher, UserButton } from "@clerk/nextjs";
 import Link from "next/link";
 import React from "react";
 
@@ -15,21 +14,13 @@ function Navbar() {
           </Link>
           <p className="my-auto text-xl">/</p>
           <div className="my-auto">
-            <OrganizationSwitcher
-              afterCreateOrganizationUrl="/dashboard"
-              hidePersonal={true}
-              afterSelectOrganizationUrl="/dashboard"
-              afterLeaveOrganizationUrl="/dashboard"
-              appearance={{
-                variables: {
-                  fontSize: "0.9rem",
-                },
-              }}
-            />
+            <span className="text-sm font-semibold text-gray-700">Default Workspace</span>
           </div>
         </div>
         <div className="flex items-center">
-          <UserButton afterSignOutUrl="/sign-in" signInUrl="/sign-in" />
+          <div className="h-8 w-8 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold text-xs">
+            U
+          </div>
         </div>
       </div>
     </div>

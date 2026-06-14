@@ -5,7 +5,7 @@ import { InterviewService } from "@/services/interviews.service";
 import { ResponseService } from "@/services/responses.service";
 import type { Question } from "@/types/interview";
 import type { Analytics } from "@/types/response";
-import { OpenAI } from "openai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 export const generateInterviewAnalytics = async (payload: {
   callId: string;
@@ -28,38 +28,26 @@ export const generateInterviewAnalytics = async (payload: {
       .map((q: Question, index: number) => `${index + 1}. ${q.question}`)
       .join("\n");
 
-    const openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
-      maxRetries: 5,
-      dangerouslyAllowBrowser: true,
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
+    const model = genAI.getGenerativeModel({
+      model: "gemini-1.5-flash",
+      generationConfig: { responseMimeType: "application/json" },
     });
 
     const prompt = getInterviewAnalyticsPrompt(interviewTranscript, mainInterviewQuestions);
 
-    const baseCompletion = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: [
-        {
-          role: "system",
-          content: SYSTEM_PROMPT,
-        },
-        {
-          role: "user",
-          content: prompt,
-        },
-      ],
-      response_format: { type: "json_object" },
-    });
+    const result = await model.generateContent([
+      { text: SYSTEM_PROMPT + "\n\n" + prompt },
+    ]);
 
-    const basePromptOutput = baseCompletion.choices[0] || {};
-    const content = basePromptOutput.message?.content || "";
+    const content = result.response.text();
     const analyticsResponse = JSON.parse(content);
 
     analyticsResponse.mainInterviewQuestions = questions.map((q: Question) => q.question);
 
     return { analytics: analyticsResponse, status: 200 };
   } catch (error) {
-    console.error("Error in OpenAI request:", error);
+    console.error("Error in Gemini request:", error);
 
     return { error: "internal server error", status: 500 };
   }

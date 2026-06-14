@@ -12,8 +12,6 @@ const CalendarWidget = ({ role = "user" }) => {
   const [calendarEmail, setCalendarEmail] = useState("");
   const [events, setEvents] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [showAuthModal, setShowAuthModal] = useState(false);
-  const [selectedAccount, setSelectedAccount] = useState("");
 
   const getHeaders = async () => {
     if (role === "recruiter") {
@@ -55,9 +53,20 @@ const CalendarWidget = ({ role = "user" }) => {
     }
   };
 
+  const checkCalendarConnection = () => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("calendar_auth") === "success") {
+      setIsConnected(true);
+      toast.success("Google Calendar successfully connected!");
+      window.history.replaceState({}, document.title, window.location.pathname);
+      fetchSyncStatus();
+    }
+  };
+
   useEffect(() => {
     if (user || companyToken) {
       fetchSyncStatus();
+      checkCalendarConnection();
     }
   }, [user, companyToken, isConnected]);
 
@@ -69,23 +78,22 @@ const CalendarWidget = ({ role = "user" }) => {
     }
   }, [isConnected]);
 
-  const handleConnect = async (email) => {
+  const handleConnectCalendar = async () => {
     setIsLoading(true);
     try {
       const headers = await getHeaders();
-      const { data } = await axios.post(
-        backendUrl + "/api/calendar-notes/sync-calendar",
-        { connected: true, email },
+      const currentPath = window.location.pathname;
+      const { data } = await axios.get(
+        `${backendUrl}/api/calendar/auth?redirect_to=${encodeURIComponent(currentPath)}`,
         { headers }
       );
-      if (data.success) {
-        setIsConnected(true);
-        setCalendarEmail(email);
-        toast.success(`Synced successfully with ${email}`);
-        setShowAuthModal(false);
+      if (data.success && data.authUrl) {
+        window.location.href = data.authUrl;
+      } else {
+        toast.error("Failed to fetch Google Auth URL");
       }
     } catch (error) {
-      toast.error("Failed to connect Google Calendar");
+      toast.error("Failed to connect Google Calendar: " + error.message);
     } finally {
       setIsLoading(false);
     }
@@ -163,8 +171,9 @@ const CalendarWidget = ({ role = "user" }) => {
               Connect Google Calendar to automatically receive alerts, interviews and job reminders.
             </p>
             <button
-              onClick={() => setShowAuthModal(true)}
-              className="mt-4 bg-brand-orange text-white py-2 px-5 rounded-xl text-xs font-bold hover:bg-jl-accent transition shadow-sm hover:shadow active:scale-95 inline-flex items-center gap-1.5"
+              onClick={handleConnectCalendar}
+              disabled={isLoading}
+              className="mt-4 bg-brand-orange text-white py-2 px-5 rounded-xl text-xs font-bold hover:bg-jl-accent transition shadow-sm hover:shadow active:scale-95 inline-flex items-center gap-1.5 disabled:opacity-50"
             >
               <Sparkles size={13} />
               Connect Google Calendar
@@ -235,61 +244,6 @@ const CalendarWidget = ({ role = "user" }) => {
         )}
       </AnimatePresence>
 
-      {/* Simulated Google OAuth Dialog Modal */}
-      {showAuthModal && (
-        <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
-            <div className="p-6 text-center border-b border-gray-50">
-              <div className="flex justify-center mb-3">
-                {/* Simulated Google Multi-color logo badge */}
-                <div className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center border border-gray-100 shadow-sm font-bold text-lg">
-                  <span className="text-blue-500">G</span>
-                  <span className="text-red-500">o</span>
-                  <span className="text-yellow-500">o</span>
-                  <span className="text-blue-500">g</span>
-                  <span className="text-green-500">l</span>
-                  <span className="text-red-500">e</span>
-                </div>
-              </div>
-              <h4 className="font-extrabold text-gray-800 text-base">Sign in with Google</h4>
-              <p className="text-xs text-gray-400 mt-1">to continue to Joblet Calendar Sync</p>
-            </div>
-
-            <div className="p-4 space-y-2">
-              <button
-                onClick={() => handleConnect(user?.email || "jayesh@gmail.com")}
-                className="w-full p-3 rounded-xl border border-gray-100 hover:bg-gray-50 transition text-left flex items-center justify-between text-xs"
-              >
-                <div>
-                  <p className="font-bold text-gray-800">{user?.displayName || "Jayesh"}</p>
-                  <p className="text-gray-400 mt-0.5">{user?.email || "jayesh@gmail.com"}</p>
-                </div>
-                <ChevronRight size={16} className="text-gray-400" />
-              </button>
-              
-              <button
-                onClick={() => handleConnect("jayesh.recruiter@gmail.com")}
-                className="w-full p-3 rounded-xl border border-gray-100 hover:bg-gray-50 transition text-left flex items-center justify-between text-xs"
-              >
-                <div>
-                  <p className="font-bold text-gray-800">Recruiter Account</p>
-                  <p className="text-gray-400 mt-0.5">jayesh.recruiter@gmail.com</p>
-                </div>
-                <ChevronRight size={16} className="text-gray-400" />
-              </button>
-            </div>
-
-            <div className="p-4 bg-gray-50/50 border-t border-gray-50 flex justify-end gap-2 text-xs">
-              <button
-                onClick={() => setShowAuthModal(false)}
-                className="py-2 px-4 rounded-xl text-gray-500 hover:bg-gray-100 font-semibold transition"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
