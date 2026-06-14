@@ -116,6 +116,69 @@ app.get("/api/debug-firebase-init", (req, res) => {
   }
 });
 
+// Comprehensive configuration debug endpoint
+app.get("/api/debug-config", (req, res) => {
+  try {
+    const hasFirebaseProjectId = !!process.env.FIREBASE_PROJECT_ID;
+    const hasFirebaseClientEmail = !!process.env.FIREBASE_CLIENT_EMAIL;
+    const hasFirebasePrivateKey = !!process.env.FIREBASE_PRIVATE_KEY;
+    const hasGeminiKey = !!process.env.GEMINI_API_KEY;
+    const hasFrontendUrl = !!process.env.FRONTEND_URL;
+
+    const geminiKeyValid = hasGeminiKey && 
+      (process.env.GEMINI_API_KEY.startsWith("AIza") || 
+       process.env.GEMINI_API_KEY.startsWith("AQ"));
+
+    const allConfigured = hasFirebaseProjectId && 
+                          hasFirebaseClientEmail && 
+                          hasFirebasePrivateKey && 
+                          hasGeminiKey &&
+                          hasFrontendUrl;
+
+    res.json({
+      success: true,
+      status: allConfigured ? "READY" : "INCOMPLETE",
+      firebaseInitialized: db !== null,
+      firebaseInitError: firebaseInitError || null,
+      configuration: {
+        firebase: {
+          project_id: hasFirebaseProjectId ? "✅ SET" : "❌ MISSING",
+          client_email: hasFirebaseClientEmail ? "✅ SET" : "❌ MISSING",
+          private_key: hasFirebasePrivateKey ? "✅ SET" : "❌ MISSING",
+          storage_bucket: process.env.FIREBASE_STORAGE_BUCKET || "❌ MISSING"
+        },
+        gemini: {
+          api_key: hasGeminiKey ? (geminiKeyValid ? "✅ VALID" : "⚠️ INVALID FORMAT") : "❌ MISSING",
+          key_format: geminiKeyValid ? "valid" : "invalid"
+        },
+        deployment: {
+          node_env: process.env.NODE_ENV || "production",
+          vercel: process.env.VERCEL ? "✅ YES" : "❌ NO",
+          frontend_url: hasFrontendUrl ? "✅ SET" : "❌ MISSING"
+        }
+      },
+      endpoints: {
+        sessions: db !== null ? "✅ READY" : "❌ UNAVAILABLE",
+        chat: db !== null && hasGeminiKey ? "✅ READY" : "❌ UNAVAILABLE",
+        parse_resume: db !== null ? "✅ READY" : "❌ UNAVAILABLE"
+      },
+      recommendations: !allConfigured ? [
+        !hasFirebaseProjectId && "Set FIREBASE_PROJECT_ID on Vercel",
+        !hasFirebaseClientEmail && "Set FIREBASE_CLIENT_EMAIL on Vercel",
+        !hasFirebasePrivateKey && "Set FIREBASE_PRIVATE_KEY on Vercel",
+        !hasGeminiKey && "Set GEMINI_API_KEY on Vercel",
+        !hasFrontendUrl && "Set FRONTEND_URL on Vercel"
+      ].filter(Boolean) : ["All systems configured"]
+    });
+  } catch (err) {
+    res.status(500).json({ 
+      success: false, 
+      message: err.message,
+      error: process.env.NODE_ENV === "development" ? err.stack : undefined
+    });
+  }
+});
+
 // Mount modular sub-routes
 app.use('/api/company', companyRoutes)
 app.use('/api/jobs', JobRoutes)
