@@ -106,12 +106,36 @@ try {
       process.env.FIREBASE_CLIENT_EMAIL &&
       process.env.FIREBASE_PRIVATE_KEY) {
     let privateKey = process.env.FIREBASE_PRIVATE_KEY;
-    // Vercel sometimes wraps the value in quotes
-    if (privateKey.startsWith('"') && privateKey.endsWith('"')) {
+    
+    // Remove outer quotes (single or double) that Vercel sometimes adds
+    if ((privateKey.startsWith("'") && privateKey.endsWith("'")) ||
+        (privateKey.startsWith('"') && privateKey.endsWith('"'))) {
       privateKey = privateKey.slice(1, -1);
     }
-    // Convert escaped newlines to real newlines
-    privateKey = privateKey.replace(/\\n/g, "\n");
+    
+    // Support multiple newline format encodings:
+    // 1. \\\\n (double-escaped from some sources)
+    // 2. \\n (standard Vercel format)
+    // 3. \n (already processed)
+    // 4. Literal newlines (already correct)
+    privateKey = privateKey.replace(/\\\\n/g, "\n");  // \\\\n → \n (double escape)
+    privateKey = privateKey.replace(/\\n/g, "\n");    // \\n → \n (single escape)
+    privateKey = privateKey.replace(/NEWLINE/gi, "\n"); // NEWLINE token fallback
+    
+    // Validate the key actually contains PEM markers
+    if (!privateKey.includes("BEGIN PRIVATE KEY")) {
+      throw new Error(
+        "FIREBASE_PRIVATE_KEY: Invalid format - missing 'BEGIN PRIVATE KEY' marker. " +
+        "Ensure you copied the entire private_key value from the Firebase service account JSON."
+      );
+    }
+    
+    if (!privateKey.includes("END PRIVATE KEY")) {
+      throw new Error(
+        "FIREBASE_PRIVATE_KEY: Invalid format - missing 'END PRIVATE KEY' marker. " +
+        "Ensure you copied the entire private_key value including the END marker."
+      );
+    }
 
     serviceAccount = {
       type: "service_account",
@@ -158,6 +182,8 @@ try {
   auth = admin.auth();
   console.log(`✅ Firebase Admin SDK initialized (${credentialSource})`);
   console.log(`✅ Firebase Storage bucket: ${storageBucket}`);
+  console.log(`✅ Firebase Auth configured and ready`);
+  console.log(`✅ All critical services initialized - API endpoints are LIVE`);
 } catch (error) {
   firebaseInitError = error.message;
   console.error("================================================================");

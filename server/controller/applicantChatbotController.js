@@ -298,47 +298,114 @@ export const handleChatSession = async (req, res) => {
       }
     } else {
       // 4. Default Mode (CareerBot) — requires Gemini
-      intent = detectApplicantIntent(message);
-      let activeJobs = [];
+      try {
+        // Validate Gemini API Key before proceeding
+        if (!process.env.GEMINI_API_KEY) {
+          console.error("[Gemini] API Key not configured in environment");
+          return res.status(503).json({
+            success: false,
+            message: "AI assistant is temporarily unavailable. Please check Gemini API configuration.",
+            debug: {
+              error: "GEMINI_API_KEY not set in environment variables",
+              suggestion: "Set GEMINI_API_KEY in Vercel project settings"
+            }
+          });
+        }
 
-      if (intent === "JOB_MATCH") {
-        activeJobs = await fetchActiveJobs();
-        activeJobsCount = activeJobs.length;
-      }
+        intent = detectApplicantIntent(message);
+        let activeJobs = [];
 
-      const systemPrompt = buildSystemPrompt(intent, activeJobs, resumeText);
-      const modelName = await resolveWorkingGeminiModel();
-      const model = getGenAI().getGenerativeModel({ model: modelName });
+        if (intent === "JOB_MATCH") {
+          activeJobs = await fetchActiveJobs();
+          activeJobsCount = activeJobs.length;
+        }
 
-      const geminiHistory = history.map((h) => ({
-        role: h.role === "user" ? "user" : "model",
-        parts: [{ text: h.content }],
-      }));
+        const systemPrompt = buildSystemPrompt(intent, activeJobs, resumeText);
+        
+        let modelName;
+        try {
+          modelName = await resolveWorkingGeminiModel();
+        } catch (modelError) {
+          console.error("[Gemini] Failed to resolve working model", {
+            error: modelError.message,
+            suggestion: "Check GEMINI_API_KEY is valid and has API access"
+          });
+          return res.status(503).json({
+            success: false,
+            message: "AI service failed to initialize. Please try again in a moment.",
+            debug: {
+              error: modelError.message,
+              type: "model_resolution_failed"
+            }
+          });
+        }
 
-      const chat = model.startChat({
-        history: [
-          { role: "user", parts: [{ text: systemPrompt }] },
-          {
-            role: "model",
-            parts: [
-              {
-                text: "Understood! I'm CareerBot, your AI career assistant. I'll help you analyze resumes, match jobs, and provide career guidance. How can I help you today?",
-              },
-            ],
+        const model = getGenAI().getGenerativeModel({ model: modelName });
+
+        const geminiHistory = history.map((h) => ({
+          role: h.role === "user" ? "user" : "model",
+          parts: [{ text: h.content }],
+        }));
+
+        const chat = model.startChat({
+          history: [
+            { role: "user", parts: [{ text: systemPrompt }] },
+            {
+              role: "model",
+              parts: [
+                {
+                  text: "Understood! I'm CareerBot, your AI career assistant. I'll help you analyze resumes, match jobs, and provide career guidance. How can I help you today?",
+                },
+              ],
+            },
+            ...geminiHistory,
+          ],
+          generationConfig: {
+            maxOutputTokens: 2048,
+            temperature: 0.7,
           },
-          ...geminiHistory,
-        ],
-        generationConfig: {
-          maxOutputTokens: 2048,
-          temperature: 0.7,
-        },
-      });
+        });
 
-      const result = await chat.sendMessage(message);
-      responseText = result.response.text();
+        const result = await chat.sendMessage(message);
+        responseText = result.response.text();
+      } catch (geminiError) {
+        console.error("[Gemini] Chat generation failed", {
+          error: geminiError.message,
+          code: geminiError.code,
+          userId: req.user?.uid
+        });
+
+        // Provide helpful error messages based on error type
+        let errorMessage = "AI assistant encountered an error";
+        if (geminiError.message?.includes("API_KEY")) {
+          errorMessage = "Gemini API key is invalid or not set";
+        } else if (geminiError.message?.includes("quota")) {
+          errorMessage = "API quota exceeded. Please try again later.";
+        } else if (geminiError.message?.includes("permission")) {
+          errorMessage = "API authentication failed. Check credentials.";
+        }
+
+        return res.status(503).json({
+          success: false,
+          message: `${errorMessage}. This is a temporary issue.`,
+          debug: {
+            geminiError: geminiError.message,
+            errorCode: geminiError.code
+          }
+        });
+      }
+    }
     }
 
     const sessionId = await persistChatTurn(userId, incomingSessionId, message.trim(), responseText);
+
+    console.log("[ChatBot] Message processed successfully", {
+      userId,
+      intent,
+      chatMode: effectiveMode,
+      messageLength: message.length,
+      sessionId
+    });
 
     await logActivity(userId, "chat_message", {
       metadata: {
@@ -359,19 +426,55 @@ export const handleChatSession = async (req, res) => {
       sessionId,
     });
   } catch (error) {
-    console.error("Chatbot error:", error.message);
+    console.error("[ChatBot] Unhandled error in handleChatSession", {
+      error: error.message,
+      stack: error.stack,
+      userId: req.user?.uid,
+      messagePreview: req.body.message?.substring(0, 50)
+    });
 
+    // Determine error type and appropriate response
     const isGeminiQuota =
       error.message?.includes("429") ||
       error.message?.includes("quota") ||
       error.message?.includes("Too Many Requests");
 
-    const status = isGeminiQuota ? 503 : 500;
-    const message = isGeminiQuota
-      ? "CareerBot (Gemini) is temporarily unavailable due to API quota limits. Try @server/job-scraper/, @server/resume_job/, or Web Search modes instead."
-      : error.message;
+    const isGeminiAuth =
+      error.message?.includes("GEMINI_API_KEY") ||
+      error.message?.includes("API key") ||
+      error.message?.includes("authentication failed");
 
-    res.status(status).json({ success: false, message });
+    const isFirebaseError =
+      error.message?.includes("Firebase") ||
+      error.message?.includes("Firestore") ||
+      !db;
+
+    let status = 500;
+    let message = "An unexpected error occurred. Please try again.";
+    let errorType = "unknown";
+
+    if (isGeminiQuota) {
+      status = 503;
+      message = "CareerBot is temporarily unavailable due to API quota limits. Try @server/job-scraper/, @server/resume_job/, or Web Search modes instead.";
+      errorType = "gemini_quota";
+    } else if (isGeminiAuth) {
+      status = 503;
+      message = "AI service authentication failed. Please check Gemini API configuration.";
+      errorType = "gemini_auth";
+    } else if (isFirebaseError) {
+      status = 503;
+      message = "Database service unavailable. Please try again shortly.";
+      errorType = "firebase_error";
+    }
+
+    res.status(status).json({
+      success: false,
+      message,
+      debug: {
+        errorType,
+        originalError: process.env.NODE_ENV === "development" ? error.message : undefined
+      }
+    });
   }
 };
 
