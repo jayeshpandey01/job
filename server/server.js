@@ -16,33 +16,51 @@ import calendarNotesRoutes from './routes/calendarNotesRoutes.js';
 import interviewRoutes from './routes/interviewRoutes.js';
 import googleCalendarRoutes from './routes/googleCalendarRoutes.js';
 import { protectRoute, protectCompany } from './middleware/authMiddleware.js';
-import { chatRateLimiter, scrapeRateLimiter } from './middleware/rateLimiters.js';
+import { chatRateLimiter } from './middleware/rateLimiters.js';
 import { db } from './config/firebaseAdmin.js';
 
 // Initialize Express
 const app = express();
 
-// Cloudinary Init
-await connectCloudinary();
+// Lazy Cloudinary Init — non-blocking, safe for serverless cold starts
+connectCloudinary().catch((err) =>
+  console.warn("[Cloudinary] Init failed (non-fatal):", err.message)
+);
 
-// Middleware
-const allowedOrigins = (process.env.FRONTEND_URL || "http://localhost:5173")
+// CORS — allow same-origin (Vercel), localhost dev, and any explicit FRONTEND_URL list
+const rawOrigins = process.env.FRONTEND_URL || "";
+const explicitOrigins = rawOrigins
   .split(",")
-  .map((origin) => origin.trim())
+  .map((o) => o.trim())
   .filter(Boolean);
 
 app.use(
   cors({
     origin(origin, callback) {
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error(`CORS blocked origin: ${origin}`));
+      // Allow requests with no origin (mobile apps, curl, Postman, same-origin SSR)
+      if (!origin) return callback(null, true);
+
+      // Allow localhost for local development
+      if (origin.startsWith("http://localhost") || origin.startsWith("http://127.0.0.1")) {
+        return callback(null, true);
       }
+
+      // Allow any *.vercel.app domain (covers all your preview + prod deployments)
+      if (origin.endsWith(".vercel.app")) {
+        return callback(null, true);
+      }
+
+      // Allow explicitly listed origins
+      if (explicitOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      callback(new Error(`CORS blocked origin: ${origin}`));
     },
     credentials: true,
   })
 );
+
 app.use(express.json({ limit: "1mb" }));
 app.use("/uploads", express.static("uploads"));
 
@@ -84,7 +102,12 @@ app.get('/api/admin/metrics', protectRoute("admin"), async (req, res) => {
 
 Sentry.setupExpressErrorHandler(app);
 
-// Start the server
-const port = process.env.PORT || 3000;
-app.listen(port, () => console.log(`Server running on port ${port}`));
+// Start the server locally only — Vercel exports the app as a handler
+if (process.env.NODE_ENV !== "production" && !process.env.VERCEL) {
+  const port = process.env.PORT || 3000;
+  app.listen(port, () => console.log(`Server running on port ${port}`));
+}
+
+// Export as default for Vercel serverless function handler
 export default app;
+

@@ -19,11 +19,12 @@ export const getUserData = async (req, res) => {
 
     // If profile document doesn't exist yet, auto-create it using credentials from token
     if (!userDoc.exists) {
+      const displayName = req.user.name || req.user.email.split("@")[0];
       const newUser = {
-        name: req.user.name || req.user.email.split("@")[0],
+        name: displayName,
         email: req.user.email,
         resume: "",
-        image: "https://via.placeholder.com/150",
+        image: `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=random&size=150`,
         role: "user"
       };
       await db.collection("users").doc(userId).set(newUser);
