@@ -2,6 +2,9 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const DEFAULT_MODELS = [
   process.env.GEMINI_MODEL,
+  "gemini-3.5-flash",
+  "gemini-3.1-flash-lite",
+  "gemini-2.5-flash-lite",
   "gemini-2.0-flash",
   "gemini-2.0-flash-lite",
   "gemini-1.5-flash-latest",
@@ -15,8 +18,8 @@ export const getGenAI = () => {
     if (!process.env.GEMINI_API_KEY) {
       throw new Error("GEMINI_API_KEY is not configured. Default mode requires a Gemini API key.");
     }
-    if (!process.env.GEMINI_API_KEY.startsWith("AIza")) {
-      throw new Error("GEMINI_API_KEY appears invalid. Please get a valid key starting with 'AIza' from https://aistudio.google.com/ and set it in your server/.env file.");
+    if (!process.env.GEMINI_API_KEY.startsWith("AIza") && !process.env.GEMINI_API_KEY.startsWith("AQ")) {
+      throw new Error("GEMINI_API_KEY appears invalid. Please get a valid key starting with 'AIza' or 'AQ' from https://aistudio.google.com/ and set it in your server/.env file.");
     }
     _genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
   }
