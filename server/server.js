@@ -22,6 +22,9 @@ import { db } from './config/firebaseAdmin.js';
 // Initialize Express
 const app = express();
 
+// Enable trust proxy for express-rate-limit behind Vercel proxy
+app.set("trust proxy", 1);
+
 // Lazy Cloudinary Init — non-blocking, safe for serverless cold starts
 connectCloudinary().catch((err) =>
   console.warn("[Cloudinary] Init failed (non-fatal):", err.message)
