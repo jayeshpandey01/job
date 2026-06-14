@@ -1,26 +1,45 @@
 import admin from "firebase-admin";
 import { readFileSync, readdirSync, existsSync } from "fs";
-import { join } from "path";
+import { join, dirname } from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 let db = null;
 let auth = null;
 
 const resolveCredentialPath = () => {
   const cwd = process.cwd();
+  const serverDir = join(__dirname, "..");
   const candidates = [
     process.env.FIREBASE_SERVICE_ACCOUNT_PATH,
     join(cwd, "serviceAccountKey.json"),
+    join(serverDir, "serviceAccountKey.json"),
   ].filter(Boolean);
 
   try {
-    const autoDetected = readdirSync(cwd).find(
+    const files = readdirSync(serverDir);
+    const autoDetected = files.find(
+      (file) => file.includes("firebase-adminsdk") && file.endsWith(".json")
+    );
+    if (autoDetected) {
+      candidates.push(join(serverDir, autoDetected));
+    }
+  } catch {
+    // ignore
+  }
+
+  try {
+    const files = readdirSync(cwd);
+    const autoDetected = files.find(
       (file) => file.includes("firebase-adminsdk") && file.endsWith(".json")
     );
     if (autoDetected) {
       candidates.push(join(cwd, autoDetected));
     }
   } catch {
-    // ignore directory read errors
+    // ignore
   }
 
   for (const credentialPath of candidates) {
