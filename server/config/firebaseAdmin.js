@@ -72,6 +72,8 @@ const resolveCredentialPath = () => {
   return null;
 };
 
+let firebaseInitError = null;
+
 try {
   let serviceAccount = null;
   let credentialPath = "Environment Variable";
@@ -119,6 +121,7 @@ try {
   console.log(`Firebase Admin SDK initialized successfully (${credentialPath})`);
   console.log(`Firebase Storage bucket: ${storageBucket}`);
 } catch (error) {
+  firebaseInitError = error.message;
   console.error("===============================================================");
   console.error("CRITICAL WARNING: Firebase Admin SDK could not initialize.");
   console.error("Details:", error.message);
@@ -128,6 +131,6 @@ try {
   // Instead, the middlewares will check for !db or !auth and return descriptive JSON errors.
 }
 
-export { db, auth };
+export { db, auth, firebaseInitError };
 export default admin;
 

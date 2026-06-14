@@ -17,7 +17,7 @@ import interviewRoutes from './routes/interviewRoutes.js';
 import googleCalendarRoutes from './routes/googleCalendarRoutes.js';
 import { protectRoute, protectCompany } from './middleware/authMiddleware.js';
 import { chatRateLimiter } from './middleware/rateLimiters.js';
-import { db } from './config/firebaseAdmin.js';
+import { db, firebaseInitError } from './config/firebaseAdmin.js';
 
 // Initialize Express
 const app = express();
@@ -69,6 +69,52 @@ app.use("/uploads", express.static("uploads"));
 
 // Routes
 app.get("/", (req, res) => res.send("API Working with Firebase"));
+
+app.get("/api/debug-firebase-init", (req, res) => {
+  try {
+    const geminiKey = process.env.GEMINI_API_KEY;
+    const obscGemini = geminiKey ? `${geminiKey.substring(0, 5)}...${geminiKey.substring(geminiKey.length - 5)}` : "missing";
+    
+    const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
+    const saLength = serviceAccountJson ? serviceAccountJson.length : 0;
+    
+    let saProject = "unknown";
+    let saPrivateKeyFormat = "unknown";
+    
+    if (serviceAccountJson) {
+      try {
+        let jsonStr = serviceAccountJson.trim();
+        if (jsonStr.startsWith("'") && jsonStr.endsWith("'")) {
+          jsonStr = jsonStr.slice(1, -1);
+        }
+        const parsed = JSON.parse(jsonStr);
+        saProject = parsed.project_id || "missing";
+        saPrivateKeyFormat = parsed.private_key ? (parsed.private_key.includes("-----BEGIN PRIVATE KEY-----") ? "valid header" : "invalid header") : "missing key";
+      } catch (err) {
+        saProject = `parse error: ${err.message}`;
+      }
+    }
+
+    res.json({
+      success: true,
+      firebaseInitError,
+      dbInitialized: db !== null,
+      env: {
+        NODE_ENV: process.env.NODE_ENV || "not set",
+        VERCEL: process.env.VERCEL || "not set",
+        PORT: process.env.PORT || "not set",
+        FIREBASE_STORAGE_BUCKET: process.env.FIREBASE_STORAGE_BUCKET || "not set",
+        FRONTEND_URL: process.env.FRONTEND_URL || "not set",
+        GEMINI_API_KEY_OBSCURED: obscGemini,
+        FIREBASE_SERVICE_ACCOUNT_JSON_LENGTH: saLength,
+        SA_PROJECT_ID: saProject,
+        SA_PRIVATE_KEY_FORMAT: saPrivateKeyFormat
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
 
 // Mount modular sub-routes
 app.use('/api/company', companyRoutes)
