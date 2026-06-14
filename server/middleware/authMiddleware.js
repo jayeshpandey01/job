@@ -1,12 +1,19 @@
-import { auth, db } from '../config/firebaseAdmin.js';
+import { auth, db, firebaseInitError } from '../config/firebaseAdmin.js';
 
 // Unified Firebase Auth ID Token Verifier and Role Guard
 export const protectRoute = (requiredRole) => async (req, res, next) => {
   try {
     if (!auth || !db) {
-      return res.status(500).json({
+      console.error("[Auth Middleware] Firebase not initialized", {
+        authExists: !!auth,
+        dbExists: !!db,
+        firebaseInitError
+      });
+      
+      return res.status(503).json({
         success: false,
-        message: "Firebase Admin SDK is not initialized. Please configure FIREBASE_SERVICE_ACCOUNT_JSON or check the service account file."
+        message: "Firebase Admin SDK is not initialized. Please verify environment variables: FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY, and FIREBASE_STORAGE_BUCKET.",
+        details: firebaseInitError || "Unknown initialization error"
       });
     }
 
@@ -59,9 +66,16 @@ export const protectRoute = (requiredRole) => async (req, res, next) => {
 export const protectCompany = async (req, res, next) => {
   try {
     if (!auth || !db) {
-      return res.status(500).json({
+      console.error("[Auth Middleware] Firebase not initialized for company route", {
+        authExists: !!auth,
+        dbExists: !!db,
+        firebaseInitError
+      });
+      
+      return res.status(503).json({
         success: false,
-        message: "Firebase Admin SDK is not initialized. Please configure FIREBASE_SERVICE_ACCOUNT_JSON or check the service account file."
+        message: "Firebase Admin SDK is not initialized. Please verify environment variables: FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY, and FIREBASE_STORAGE_BUCKET.",
+        details: firebaseInitError || "Unknown initialization error"
       });
     }
 
