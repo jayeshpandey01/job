@@ -1,4 +1,4 @@
-import { db } from "../config/firebaseAdmin.js";
+import { db, firebaseInitError } from "../config/firebaseAdmin.js";
 import { uploadResumeFile, getSignedResumeUrl } from "../utils/uploadResumeFile.js";
 import { logActivity } from "../services/chat/activityLogger.js";
 
@@ -12,6 +12,15 @@ const withFreshResumeUrl = async (userData) => {
 
 // Get user Data (or auto-create if new user logging in first time)
 export const getUserData = async (req, res) => {
+  if (!db) {
+    console.error("[UserController] Firebase Firestore not initialized in getUserData", { firebaseInitError });
+    return res.status(503).json({
+      success: false,
+      message: "Database not initialized. Please check your Firebase configuration.",
+      debug: { firebaseError: firebaseInitError }
+    });
+  }
+
   const userId = req.user.uid;
 
   try {
@@ -34,12 +43,29 @@ export const getUserData = async (req, res) => {
     const userData = await withFreshResumeUrl({ _id: userDoc.id, ...userDoc.data() });
     res.json({ success: true, user: userData });
   } catch (error) {
-    res.json({ success: false, message: error.message });
+    console.error("[UserController] Error in getUserData", {
+      error: error.message,
+      userId: req.user?.uid
+    });
+    res.status(500).json({
+      success: false,
+      message: error.message,
+      debug: process.env.NODE_ENV === "development" ? error.stack : undefined
+    });
   }
 };
 
 // Apply For a Job
 export const applyForJob = async (req, res) => {
+  if (!db) {
+    console.error("[UserController] Firebase Firestore not initialized in applyForJob", { firebaseInitError });
+    return res.status(503).json({
+      success: false,
+      message: "Database not initialized. Please check your Firebase configuration.",
+      debug: { firebaseError: firebaseInitError }
+    });
+  }
+
   const { jobId } = req.body;
   const userId = req.user.uid;
 
@@ -110,12 +136,30 @@ export const applyForJob = async (req, res) => {
 
     res.json({ success: true, message: "Applied Successfully" });
   } catch (error) {
-    res.json({ success: false, message: error.message });
+    console.error("[UserController] Error in applyForJob", {
+      error: error.message,
+      userId: req.user?.uid,
+      jobId: req.body?.jobId
+    });
+    res.status(500).json({
+      success: false,
+      message: error.message,
+      debug: process.env.NODE_ENV === "development" ? error.stack : undefined
+    });
   }
 };
 
 // Get User applied applications
 export const getUserJobApplications = async (req, res) => {
+  if (!db) {
+    console.error("[UserController] Firebase Firestore not initialized in getUserJobApplications", { firebaseInitError });
+    return res.status(503).json({
+      success: false,
+      message: "Database not initialized. Please check your Firebase configuration.",
+      debug: { firebaseError: firebaseInitError }
+    });
+  }
+
   try {
     const userId = req.user.uid;
 
@@ -149,12 +193,29 @@ export const getUserJobApplications = async (req, res) => {
 
     res.json({ success: true, applications });
   } catch (error) {
-    res.json({ success: false, message: error.message });
+    console.error("[UserController] Error in getUserJobApplications", {
+      error: error.message,
+      userId: req.user?.uid
+    });
+    res.status(500).json({
+      success: false,
+      message: error.message,
+      debug: process.env.NODE_ENV === "development" ? error.stack : undefined
+    });
   }
 };
 
 // Update User Profile (resume)
 export const updateUserResume = async (req, res) => {
+  if (!db) {
+    console.error("[UserController] Firebase Firestore not initialized in updateUserResume", { firebaseInitError });
+    return res.status(503).json({
+      success: false,
+      message: "Database not initialized. Please check your Firebase configuration.",
+      debug: { firebaseError: firebaseInitError }
+    });
+  }
+
   try {
     const userId = req.user.uid;
     const resumeFile = req.file;
@@ -175,6 +236,14 @@ export const updateUserResume = async (req, res) => {
 
     return res.json({ success: true, message: "Resume Updated Successfully" });
   } catch (error) {
-    res.json({ success: false, message: error.message });
+    console.error("[UserController] Error in updateUserResume", {
+      error: error.message,
+      userId: req.user?.uid
+    });
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+      debug: process.env.NODE_ENV === "development" ? error.stack : undefined
+    });
   }
 };
