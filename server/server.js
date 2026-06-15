@@ -68,7 +68,13 @@ app.use(express.json({ limit: "1mb" }));
 app.use("/uploads", express.static("uploads"));
 
 // Routes
-app.get("/", (req, res) => res.send("API Working with Firebase"));
+app.get("/", (req, res) => {
+  try {
+    res.send("API Working with Firebase");
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 app.get("/api/debug-firebase-init", (req, res) => {
   try {
@@ -193,8 +199,15 @@ app.use('/api/interviews', interviewRoutes)
 app.use('/api/calendar', googleCalendarRoutes)
 
 // Unified Admin Route for `/admin`
-app.get('/api/admin/metrics', protectRoute("admin"), async (req, res) => {
+app.get('/api/admin/metrics', protectRoute("admin"), async (req, res, next) => {
   try {
+    if (!db) {
+      return res.status(503).json({
+        success: false,
+        message: "Database not initialized"
+      });
+    }
+
     const jobsSnapshot = await db.collection("jobs").get();
     const usersSnapshot = await db.collection("users").get();
     const appsSnapshot = await db.collection("applications").get();
@@ -208,11 +221,30 @@ app.get('/api/admin/metrics', protectRoute("admin"), async (req, res) => {
       }
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error("[Admin Metrics] Error:", error.message);
+    next(error);
   }
 });
 
-Sentry.setupExpressErrorHandler(app);
+// Global error handler (instead of Sentry middleware which can cause function invocation failures)
+app.use((err, req, res, next) => {
+  console.error("[Server Error]", {
+    message: err.message,
+    path: req.path,
+    method: req.method,
+    stack: process.env.NODE_ENV === "development" ? err.stack : undefined
+  });
+
+  if (process.env.SENTRY_DSN) {
+    Sentry.captureException(err);
+  }
+
+  res.status(err.status || 500).json({
+    success: false,
+    message: process.env.NODE_ENV === "development" ? err.message : "Internal server error",
+    error: process.env.NODE_ENV === "development" ? err.stack : undefined
+  });
+});
 
 // Start the server locally only — Vercel exports the app as a handler
 if (process.env.NODE_ENV !== "production" && !process.env.VERCEL) {
