@@ -31,8 +31,9 @@ export let firebaseInitError = null;
 
 if (missingKeys.length > 0) {
   firebaseInitError =
-    `Missing Firebase environment variables: ${missingKeys.join(", ")}. ` +
-    "Copy client/.env.example to client/.env, fill in values from Firebase Console, then restart the dev server (npm run dev).";
+    `Missing Firebase configuration: ${missingKeys.join(", ")}. ` +
+    "Add these 6 environment variables on Vercel → Project Settings → Environment Variables. " +
+    "Get values from Firebase Console → Project Settings → Your Apps → Web App.";
 } else {
   try {
     const app = initializeApp(firebaseConfig);
@@ -49,3 +50,6 @@ if (missingKeys.length > 0) {
 }
 
 export const isFirebaseReady = Boolean(auth && googleProvider && db);
+
+// Backend is on same domain, use relative paths
+export const BACKEND_URL = "";

@@ -1,0 +1,81 @@
+================================================================================
+                         WEBSITE BLANK PAGE - FIX
+================================================================================
+
+PROBLEM:
+--------
+Website shows blank page because Firebase Web SDK config is missing.
+
+SOLUTION (Simple 4 Steps):
+--------------------------
+
+STEP 1: Get Firebase Web SDK Values
+   → Go to: https://console.firebase.google.com/
+   → Select project: jobfinder-de280
+   → Go to: Settings (gear icon) → Your Apps → Web App
+   → Copy these 6 values:
+      • apiKey
+      • authDomain
+      • projectId
+      • storageBucket
+      • messagingSenderId
+      • appId
+
+STEP 2: Add to Vercel Environment Variables
+   → Go to: https://vercel.com/dashboard
+   → Select: job project
+   → Click: Settings → Environment Variables
+   → Add 6 new variables:
+      • VITE_FIREBASE_API_KEY = (paste value from Firebase)
+      • VITE_FIREBASE_AUTH_DOMAIN = (paste value)
+      • VITE_FIREBASE_PROJECT_ID = (paste value)
+      • VITE_FIREBASE_STORAGE_BUCKET = (paste value)
+      • VITE_FIREBASE_MESSAGING_SENDER_ID = (paste value)
+      • VITE_FIREBASE_APP_ID = (paste value)
+
+STEP 3: Save All Variables
+   → For EACH variable:
+      ✓ Check: Production
+      ✓ Check: Preview
+      ✓ Check: Development
+      → Click: Save
+
+STEP 4: Wait & Test
+   → Wait 2-3 minutes for Vercel to redeploy
+   → Open: https://joblet-gamma.vercel.app
+   → Website should now load with home page visible
+
+
+WHAT CHANGED IN CODE:
+---------------------
+✓ client/src/config/firebase.js - Updated error messages
+✓ Added backend URL config for same-domain backend
+✓ No separate backend URL needed (already on same domain)
+
+
+EXPECTED RESULT:
+----------------
+✓ Website loads (not blank)
+✓ Home page shows
+✓ Login button visible
+✓ Chat feature works
+✓ No console errors
+
+
+IF STILL BLANK:
+---------------
+1. Check all 6 variables are set on Vercel (Settings → Environment Variables)
+2. Verify variable names have VITE_ prefix (exact spelling matters)
+3. Verify values are from Firebase Console (not your own project ID)
+4. Refresh page (Ctrl+F5 to clear cache)
+5. Check browser console (F12 → Console) for error messages
+
+
+NEED HELP?
+----------
+Read: /vercel/share/v0-project/BLANK_PAGE_FIX.md (detailed guide with screenshots)
+
+================================================================================
+Time to fix: 10 minutes
+Status: Code ready, waiting for Firebase Web SDK values
+================================================================================
